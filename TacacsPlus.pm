@@ -17,7 +17,7 @@ require DynaLoader;
 @EXPORT_OK = qw(
 	TACPLUS_CLIENT
 );
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 sub new
 {
@@ -36,18 +36,21 @@ undef $self if ($res < 0);
 $self;
 }
 
+# Third arg authen_type is optional, defaults to 
+# TAC_PLUS_AUTHEN_TYPE_ASCII
 sub authen
 {
-my $class = shift;
-my $username = shift;
-my $password = shift;
-my $res=make_auth($username,$password);
-$res;
+    my $class = shift;
+    my $username = shift;
+    my $password = shift;
+    my $authen_type = shift || &Authen::TacacsPlus::TAC_PLUS_AUTHEN_TYPE_ASCII;
+    my $res=make_auth($username,$password,$authen_type);
+    $res;
 }
 
 sub close
 {
-deinit_tac_session();
+    deinit_tac_session();
 }
 
 
@@ -121,10 +124,31 @@ with key $key. Undefined object is returned if something wrong
 
 Returns last error message.  
 
-  $tac->authen($username,$password);
+  $tac->authen($username,$password,$authen_type);
 
 Tries an authentication with $username and $password. 1 is returned if
 authenticaton succeded and 0 if failed (check errmsg() for reason).
+
+$authen_type is an optional argument that specifies what type
+of authentication to perform. Allowable options are:
+Authen::TacacsPlus::TAC_PLUS_AUTHEN_TYPE_ASCII (default)
+Authen::TacacsPlus::TAC_PLUS_AUTHEN_TYPE_PAP
+Authen::TacacsPlus::TAC_PLUS_AUTHEN_TYPE_CHAP
+
+ASCII uses Tacacs+ version 0, and will authenticate against 
+the "login" or "global" password on the Tacacs+ server. If no
+authen_type is specified, it defaults to this type of authentication.
+
+PAP uses Tacacs+ version 1, and will authenticate against 
+the "pap" or "global" password on the Tacacs+ server.
+
+CHAP uses Tacacs+ version 1, and will authenticate against 
+the "chap" or "global" password on the Tacacs+ server. With CHAP,
+the password if formed by the concatenation of
+  chap id + chap challenge + chap response
+
+Ther is example code in test.pl
+
 
   $tac->close();
 
@@ -152,6 +176,8 @@ Closes session with tacacs+ server.
 =head1 AUTHOR
 
 Mike Shoyher, msh@corbina.net, msh@apache.lexa.ru
+
+Mike McCauley, mikem@open.com.au
 
 =head1 BUGS
 

@@ -18,7 +18,7 @@ $osname=$Config{osname};
 WriteMakefile(                                                   
     NAME      => 'Authen::TacacsPlus::tacplus',                               
     DEFINE    => $defines{$osname},
-    SKIP      => [qw(all static static_lib dynamic dynamic_lib)],
+    SKIP      => [qw(static dynamic)],
     clean     => {'FILES' => 'libtacplus$(LIB_EXT)'},              
 );                                                               
                                                                  

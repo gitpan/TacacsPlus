@@ -338,9 +338,12 @@ extern struct session session;     /* the session */
 
 /* Global variables */
 
+/* Get type conflicts with Perl on some Linux unless we do this */
+#define debug tacplus_client_debug
+
 extern int debug;                  /* debugging flag */
 extern int logging;                /* syslog logging flag */
-extern int single;                 /* do not fork (for debugging) */
+/*extern int single;                 /* do not fork (for debugging) */
 extern int console;                /* log to console */
 extern FILE *ostream;              /* for logging to console */
 extern int parse_only;             /* exit after parsing verbosely */

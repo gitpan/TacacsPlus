@@ -30,85 +30,108 @@ char* tac_err="NONE";
 
 void fill_tac_hdr(struct tac_plus_pak_hdr* hdr)
 {
-hdr->version=TAC_PLUS_VER_0;   
-hdr->type=TAC_PLUS_AUTHEN;     
-hdr->seq_no=tac_sequence;      
-hdr->encryption=TAC_PLUS_CLEAR;
-hdr->session_id=tac_session_id;
+    hdr->version=TAC_PLUS_VER_0;   
+    hdr->type=TAC_PLUS_AUTHEN;     
+    hdr->seq_no=tac_sequence;      
+    hdr->encryption=TAC_PLUS_CLEAR;
+    hdr->session_id=tac_session_id;
 }
-void send_auth_cont(char* msg);
-int make_auth(char* username,char* password)
+
+/* Need to specify the lengths, becuase CHAP passwords etc 
+   may have NULs in them */
+void send_auth_cont(char* msg, int msg_len);
+int make_auth(char* username, int user_len,
+	      char* password, int password_len,
+	      int authen_type)
 {
-struct tac_plus_pak_hdr hdr;
-struct authen_start as;
-int datalength;
-void* buf;
-void* data;
-int data_len;
-int buf_len;
-struct authen_reply* ar;
+    struct tac_plus_pak_hdr hdr;
+    struct authen_start as;
+    int datalength;
+    void* buf;
+    void* data;
+    int data_len;
+    int buf_len;
+    struct authen_reply* ar;
 
-fill_tac_hdr(&hdr);
+    fill_tac_hdr(&hdr);
 
-datalength=TAC_AUTHEN_START_FIXED_FIELDS_SIZE;
+    datalength=TAC_AUTHEN_START_FIXED_FIELDS_SIZE;
 
 
-as.action= TAC_PLUS_AUTHEN_LOGIN ;
-as.priv_lvl= TAC_PLUS_PRIV_LVL_MIN ;
-as.authen_type = TAC_PLUS_AUTHEN_TYPE_ASCII ;
-as.service= TAC_PLUS_AUTHEN_SVC_LOGIN ;
-as.user_len=as.port_len=as.rem_addr_len=as.data_len=0;
+    as.action= TAC_PLUS_AUTHEN_LOGIN ;
+    as.priv_lvl= TAC_PLUS_PRIV_LVL_MIN ;
+    as.authen_type = authen_type ;
+    as.service= TAC_PLUS_AUTHEN_SVC_LOGIN ;
+    as.user_len=as.port_len=as.rem_addr_len=as.data_len=0;
 
-buf=malloc(buf_len=TAC_PLUS_HDR_SIZE+TAC_AUTHEN_START_FIXED_FIELDS_SIZE+ourtty_len+ourhost_len);
+    if (authen_type != TAC_PLUS_AUTHEN_TYPE_ASCII)
+    {
+	/* This will be a version 1 request with the username
+	   and password in the start */
+	hdr.version=TAC_PLUS_VER_1;
+	as.user_len = user_len;
+	as.data_len = password_len;
+	
+    }
+    buf=malloc(buf_len=TAC_PLUS_HDR_SIZE+TAC_AUTHEN_START_FIXED_FIELDS_SIZE+ourtty_len+ourhost_len+as.user_len+as.data_len);
 
-bcopy(ourtty,buf+datalength+TAC_PLUS_HDR_SIZE,ourtty_len);
-datalength+=(ourtty_len);
-bcopy(ourhost,buf+datalength+TAC_PLUS_HDR_SIZE,ourhost_len);      
-datalength+=(ourhost_len); 
-as.port_len=ourtty_len;
-as.rem_addr_len=ourhost_len;
-hdr.datalength= htonl(datalength) ;
-bcopy(&hdr,buf,TAC_PLUS_HDR_SIZE);
-bcopy(&as,buf+TAC_PLUS_HDR_SIZE,TAC_AUTHEN_START_FIXED_FIELDS_SIZE);
-md5_xor(buf, buf+TAC_PLUS_HDR_SIZE, tac_key);
-send_data(buf,buf_len,tac_fd);
-free(buf);
-while ((data_len=read_reply(&data))!=-1){
+    /* Append user name if required */
+    bcopy(username,buf+datalength+TAC_PLUS_HDR_SIZE,as.user_len);
+    datalength+=(as.user_len);
+
+    bcopy(ourtty,buf+datalength+TAC_PLUS_HDR_SIZE,ourtty_len);
+    datalength+=(ourtty_len);
+    as.port_len=ourtty_len;
+
+    bcopy(ourhost,buf+datalength+TAC_PLUS_HDR_SIZE,ourhost_len);      
+    datalength+=(ourhost_len); 
+    as.rem_addr_len=ourhost_len;
+
+    /* Append password if required */
+    bcopy(password,buf+datalength+TAC_PLUS_HDR_SIZE,as.data_len);
+    datalength+=(as.data_len);
+
+    hdr.datalength= htonl(datalength) ;
+    bcopy(&hdr,buf,TAC_PLUS_HDR_SIZE);
+    bcopy(&as,buf+TAC_PLUS_HDR_SIZE,TAC_AUTHEN_START_FIXED_FIELDS_SIZE);
+    md5_xor(buf, buf+TAC_PLUS_HDR_SIZE, tac_key);
+    send_data(buf,buf_len,tac_fd);
+    free(buf);
+    while ((data_len=read_reply(&data))!=-1){
 
 	ar=data;
 	switch (ar->status) {
-		case TAC_PLUS_AUTHEN_STATUS_GETUSER:
-			free(data);
-			send_auth_cont(username);
-			break;
-		case TAC_PLUS_AUTHEN_STATUS_GETPASS:
-			free(data);
-			send_auth_cont(password);   
-			break;                      
-		case TAC_PLUS_AUTHEN_STATUS_PASS:
-			return 1;
-		case TAC_PLUS_AUTHEN_STATUS_FAIL: 
-			tac_err="Authentification failed";
-        		return 0;                 
-		default :
-			tac_err="Protocol error";
-			return 0;
+	case TAC_PLUS_AUTHEN_STATUS_GETUSER:
+	    free(data);
+	    send_auth_cont(username, user_len);
+	    break;
+	case TAC_PLUS_AUTHEN_STATUS_GETPASS:
+	    free(data);
+	    send_auth_cont(password, password_len);   
+	    break;                      
+	case TAC_PLUS_AUTHEN_STATUS_PASS:
+	    return 1;
+	case TAC_PLUS_AUTHEN_STATUS_FAIL: 
+	    tac_err="Authentification failed";
+	    return 0;                 
+	default :
+	    tac_err="Protocol error";
+	    return 0;
 	}
 
-}
-tac_err="Unknown error";
-return 0;
+    }
+    tac_err="Unknown error";
+    return 0;
 }
 
-void send_auth_cont(char* msg)
+void send_auth_cont(char* msg, int msg_len)
 {
 struct tac_plus_pak_hdr hdr;
 struct authen_cont ac;     
 int datalength;             
 void* buf;                  
-int msg_len,buf_len;
+int buf_len;
 
-msg_len=strlen(msg);
 buf_len=TAC_PLUS_HDR_SIZE+TAC_AUTHEN_CONT_FIXED_FIELDS_SIZE+msg_len;
 buf=malloc(buf_len);
 fill_tac_hdr(&hdr);

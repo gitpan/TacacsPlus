@@ -10,6 +10,7 @@ extern "C" {
 
 #include <string.h>
 #include "tacpluslib/tacplus_client.h"
+#include "tacpluslib/tac_plus.h"
 
 static int
 not_here(s)
@@ -71,6 +72,14 @@ int arg;
 #else
 	    goto not_there;
 #endif
+	else if (strEQ(name, "TAC_PLUS_AUTHEN_TYPE_ASCII"))
+	    return TAC_PLUS_AUTHEN_TYPE_ASCII;
+	else if (strEQ(name, "TAC_PLUS_AUTHEN_TYPE_PAP"))
+	    return TAC_PLUS_AUTHEN_TYPE_PAP;
+	else if (strEQ(name, "TAC_PLUS_AUTHEN_TYPE_CHAP"))
+	    return TAC_PLUS_AUTHEN_TYPE_CHAP;
+	else if (strEQ(name, "TAC_PLUS_AUTHEN_TYPE_ARAP"))
+	    return TAC_PLUS_AUTHEN_TYPE_ARAP;
 	break;
     case 'U':
 	break;
@@ -113,9 +122,18 @@ init_tac_session (host_name,port_name,key,timeout)
 	RETVAL
 
 int
-make_auth (username, password)
+make_auth (username, password, authen_type)
 	char* username
 	char* password
+	int authen_type
+	CODE:
+	int user_len;
+	int password_len;
+        username = (char *)SvPV(ST(0),user_len);
+        password = (char *)SvPV(ST(1),password_len);
+	RETVAL = make_auth(username, user_len, 
+			   password, password_len, 
+			   authen_type);
 	OUTPUT:
 	RETVAL
 

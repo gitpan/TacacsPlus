@@ -1,29 +1,29 @@
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
+
 use Config;
 
 $osname=$Config{osname};
 
 print "Configuring for $osname ...\n";
 
+# On Solaris, can get the wrong version of md5 unless we do this:
+# Will also get lots of complaints about undefined symbols
 if ($osname eq 'solaris') {
-	$ex_cc_flags='-symbolic';
+        $ex_cc_flags='-symbolic';
 }
-
 
 WriteMakefile(
     'NAME'	=> 'Authen::TacacsPlus',
     'VERSION_FROM' => 'TacacsPlus.pm', # finds $VERSION
-    'LIBS'	=> [''],   # e.g., '-lm' 
-    'INC'	=> '',     # e.g., '-I/usr/include/other' 
-    'MYEXTLIB' => "$ex_cc_flags $defines{$osname}".'  tacpluslib/libtacplus$(LIB_EXT)',
+    'MYEXTLIB'  => "$ex_cc_flags tacpluslib/libtacplus\$(LIB_EXT)",
     'DISTNAME'          => 'TacacsPlus',
     'dist'                  => { COMPRESS => 'gzip', SUFFIX => 'gz' },
 );
 sub MY::postamble {         
 '                           
 $(MYEXTLIB): tacpluslib/Makefile 
-	cd tacpluslib && $(MAKE) 
+	cd tacpluslib && $(MAKE) -e
 ';                          
 }                           
