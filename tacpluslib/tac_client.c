@@ -33,7 +33,7 @@ void fill_tac_hdr(struct tac_plus_pak_hdr* hdr)
 hdr->version=TAC_PLUS_VER_0;   
 hdr->type=TAC_PLUS_AUTHEN;     
 hdr->seq_no=tac_sequence;      
-hdr->encryption=TAC_PLUS_ENCRYPTED;
+hdr->encryption=TAC_PLUS_CLEAR;
 hdr->session_id=tac_session_id;
 }
 void send_auth_cont(char* msg);

@@ -211,7 +211,7 @@ int lockfd;
 		continue;
 	    } else {
 		syslog(LOG_ERR, "fcntl lock error status %d on %s %d %s", 
-		       status, filename, lockfd, sys_errlist[errno]);
+		       status, filename, lockfd, strerror(errno));
 		return(0);
 	    }
 	}
@@ -221,7 +221,7 @@ int lockfd;
 
     if (errno != 0) {
 	syslog(LOG_ERR, "Cannot lock %s fd %d in %d tries %s", 
-	       filename, lockfd, tries+1, sys_errlist[errno]);
+	       filename, lockfd, tries+1, strerror(errno));
 	return(0);
     }
     return(1);

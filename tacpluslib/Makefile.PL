@@ -1,7 +1,23 @@
 use ExtUtils::MakeMaker;                                         
 $Verbose = 1;                                                    
+use Config;
+
+$osname=$Config{osname};
+%defines=(
+        'linux'=>'-DLINUX',
+        'freebsd'=>'-DFREEBSD',
+        'netbsd'=>'-DNETBSD',
+        'solaris'=>'-DSOLARIS',
+        'sunos'=>'-DSOLARIS',
+        'bsdi'=>'-DBSDI',
+        'aix'=>'-DAIX',
+        'hpux'=>'-DHPUX',
+);
+
+
 WriteMakefile(                                                   
     NAME      => 'Authen::TacacsPlus::tacplus',                               
+    DEFINE    => $defines{$osname},
     SKIP      => [qw(all static static_lib dynamic dynamic_lib)],
     clean     => {'FILES' => 'libtacplus$(LIB_EXT)'},              
 );                                                               
